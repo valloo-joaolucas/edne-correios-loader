@@ -1,4 +1,5 @@
 import enum
+import sqlalchemy as sa
 
 from sqlalchemy import (
     Column,
@@ -606,4 +607,27 @@ cep_unificado = Table(
     # Correios' own buildings, etc.
     Column("nome", String(100)),
     info={"unified_table": True},
+)
+
+"""
+Table for tracking DNE database updates
+"""
+log_dne_update = Table(
+    "log_dne_update",
+    metadata,
+    Column(
+        "update_date", 
+        sa.DateTime, 
+        primary_key=True,
+        comment="Date and time of the update",
+        server_default=sa.func.current_timestamp(),
+        nullable=False
+    ),
+    Column(
+        "logs", 
+        sa.Text, 
+        comment="Detailed logs of database update",
+        nullable=True
+    ),
+    info={"control_table": True}
 )

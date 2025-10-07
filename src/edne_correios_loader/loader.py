@@ -50,6 +50,8 @@ class DneLoader:
 
             database_writer.populate_unified_table()
             database_writer.drop_tables(table_set.to_drop)
+            
+            database_writer.register_update()
 
 
 class TableFilesReader:

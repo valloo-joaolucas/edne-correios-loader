@@ -392,3 +392,13 @@ Para executar os testes, é necessário a instalação do [Docker](https://www.d
 ## Licença
 
 Esse projeto é distribuído sob os termos da licença [MIT](https://spdx.org/licenses/MIT.html).
+
+## Compilar
+
+pip install -e .
+
+## Exemplo: 
+edne-correios-loader load \
+  --dne-source ~/Downloads/eDNE_Basico2/eDNE_Basico_25032/ \
+  --database-url postgresql://db_user:qwe123@localhost:5432/dne \
+  --tables cep-tables

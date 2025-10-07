@@ -1,12 +1,32 @@
 import logging
 from typing import Iterable, List, Union
+import datetime
+import io
 
 import sqlalchemy as sa
 
-from .tables import metadata
+from .tables import metadata, log_dne_update
 from .unified_table import populate_unified_table
 
 logger = logging.getLogger(__name__)
+
+
+class LogCapture(logging.Handler):
+    """A custom logging handler that captures log messages in memory"""
+    
+    def __init__(self):
+        super().__init__()
+        self.log_records = []
+        self.formatter = logging.Formatter('%(levelname)s: %(message)s')
+    
+    def emit(self, record):
+        self.log_records.append(self.formatter.format(record))
+    
+    def get_logs(self):
+        return "\n".join(self.log_records)
+    
+    def clear(self):
+        self.log_records = []
 
 
 class DneDatabaseWriter:
@@ -14,9 +34,13 @@ class DneDatabaseWriter:
     connection: sa.Connection
     metadata: sa.MetaData = metadata
     insert_buffer_size = 1000
+    log_capture: LogCapture
 
     def __init__(self, database_url: str):
         self.engine = sa.create_engine(database_url, echo=False)
+        # Set up log capture
+        self.log_capture = LogCapture()
+        logger.addHandler(self.log_capture)
 
     def __enter__(self):
         logger.info("Connecting to database...", extra={"indentation": 0})
@@ -27,11 +51,12 @@ class DneDatabaseWriter:
         if exc_val:
             # if something went wrong, rollback all the changes
             self.connection.rollback()
-
         else:
             self.connection.commit()
 
         self.connection.close()
+        # Remove log handler to avoid memory leaks
+        logger.removeHandler(self.log_capture)
 
     def create_tables(self, tables: List[str]):
         metadata_tables = [self.metadata.tables[t] for t in tables]
@@ -96,6 +121,24 @@ class DneDatabaseWriter:
             table_name,
             extra={"indentation": 1},
         )
+        
+    def register_update(self):
+        """
+        Records a DNE database update in the log table with captured logs.
+        """
+        logger.info("Recording DNE database update", extra={"indentation": 0})
+        
+        # Get all logs captured during this session
+        logs = self.log_capture.get_logs()
+        
+        self.connection.execute(
+            log_dne_update.insert().values(
+                update_date=datetime.datetime.now(),
+                logs=logs
+            )
+        )
+        
+        logger.info("Update successfully recorded", extra={"indentation": 1})
 
     def populate_unified_table(self):
         logger.info("Populating unified CEP table", extra={"indentation": 0})

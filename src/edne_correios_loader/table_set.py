@@ -16,9 +16,12 @@ class TableSetEnum(enum.Enum):
     @property
     def to_populate(self) -> List[str]:
         if self.value == "all":
-            return [t.name for t in metadata.sorted_tables]
+            return [t.name for t in metadata.sorted_tables if not t.info.get("control_table")]
 
-        return get_cep_tables()
+        tables = get_cep_tables()
+        if "log_dne_update" not in tables:
+            tables.append("log_dne_update")
+        return tables
 
     @property
     def to_drop(self) -> List[str]:
@@ -40,6 +43,9 @@ def get_cep_tables() -> List[str]:
     dependencies = set()
 
     for table in reversed(metadata.sorted_tables):
+        if table.info.get("control_table"):
+            continue
+            
         if "cep" in table.c or table.name in dependencies:
             for dep in table.foreign_keys:
                 dependencies.add(dep.column.table.name)
@@ -56,7 +62,7 @@ def get_table_files_glob(table_name: str) -> Union[str, None]:
     """
     table = metadata.tables[table_name]
 
-    if table.info.get("unified_table", False):
+    if table.info.get("unified_table", False) or table.info.get("control_table", False):
         return None
 
     return table.info.get("file_glob", f"{table.name.upper()}.TXT")

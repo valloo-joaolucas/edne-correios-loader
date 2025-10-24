@@ -14,7 +14,7 @@ RUN apt-get update && \
 
 COPY ./ /app/e-dne-loader-fork/
 
-COPY script/execAtualizaCorreios.sh /app
+COPY script/execAtualizaCorreios.sh /app/execAtualizaCorreios.sh
 
 RUN python3 -m venv venv && \
     . venv/bin/activate && \

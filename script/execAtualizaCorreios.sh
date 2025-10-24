@@ -4,6 +4,7 @@
 cd /app
 
 # Ativar o ambiente virtual
+. venv/bin/activate
 
 # Executar o comando de ajuda do edne-correios-loader
 edne-correios-loader load --help
